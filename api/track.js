@@ -1,3 +1,5 @@
+console.log("NEW VERSION DEPLOYED");
+
 import axios from "axios";
 import * as cheerio from "cheerio";
 
