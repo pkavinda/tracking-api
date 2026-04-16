@@ -18,78 +18,121 @@ export default async function handler(req, res) {
   try {
     const courier = detectCourier(id);
 
-    /* ---------------- SL POST ---------------- */
+    /* ================= SL POST ================= */
     if(courier === "slpost"){
       const url = `https://bepost.lk/p/Search/?itemcode=${id}`;
-      const response = await axios.get(url);
-      const $ = cheerio.load(response.data);
 
-      const status = $("td:contains('Status')").next().text().trim();
-      const location = $("td:contains('Location')").next().text().trim();
-      const date = $("td:contains('Date')").next().text().trim();
+      try {
+        const response = await axios.get(url, {
+          headers: {
+            "User-Agent": "Mozilla/5.0",
+            "Accept-Language": "en-US,en;q=0.9"
+          }
+        });
 
-      return res.status(200).json({
-        success: true,
-        courier: "Sri Lanka Post",
-        tracking_id: id,
-        status,
-        location,
-        date
-      });
+        const $ = cheerio.load(response.data);
+
+        const status = $("td:contains('Status')").next().text().trim();
+        const location = $("td:contains('Location')").next().text().trim();
+        const date = $("td:contains('Date')").next().text().trim();
+
+        if(!status){
+          return res.status(200).json({
+            success: true,
+            courier: "Sri Lanka Post",
+            tracking_id: id,
+            status: "View tracking details",
+            tracking_url: url
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          courier: "Sri Lanka Post",
+          tracking_id: id,
+          status,
+          location,
+          date
+        });
+
+      } catch {
+        return res.status(200).json({
+          success: true,
+          courier: "Sri Lanka Post",
+          tracking_id: id,
+          status: "View tracking details",
+          tracking_url: url
+        });
+      }
     }
 
-    /* ---------------- KOOMBIYO ---------------- */
+    /* ================= KOOMBIYO ================= */
     if(courier === "koombiyo"){
       if(!phone){
-        return res.status(200).json({ success:false, error:"Phone required" });
+        return res.status(200).json({
+          success: false,
+          error: "Phone required"
+        });
       }
 
-      const url = `https://koombiyodelivery.lk/Track/track_id?id=${id}&phone=${phone}`;
-      const response = await axios.get(url);
-      const $ = cheerio.load(response.data);
+      try {
+        const url = `https://koombiyodelivery.lk/Track/track_id?id=${id}&phone=${phone}`;
+        const response = await axios.get(url);
+        const $ = cheerio.load(response.data);
 
-      const status = $("label:contains('Status')").next().text().trim();
+        const status = $("label:contains('Status')").next().text().trim();
 
-      return res.status(200).json({
-        success: true,
-        courier: "Koombiyo",
-        tracking_id: id,
-        status
-      });
+        return res.status(200).json({
+          success: true,
+          courier: "Koombiyo",
+          tracking_id: id,
+          status: status || "In Transit"
+        });
+
+      } catch {
+        return res.status(200).json({
+          success: false,
+          error: "Koombiyo tracking failed"
+        });
+      }
     }
 
-    /* ---------------- CITYPAK ---------------- */
+    /* ================= CITYPAK ================= */
     if(courier === "citypak"){
-      const url = `https://track.citypak.lk/track?tracking_number=${id}`;
-      const response = await axios.get(url);
-      const $ = cheerio.load(response.data);
-
-      const status = $("td:contains('Status')").next().text().trim();
-
       return res.status(200).json({
         success: true,
         courier: "CityPak",
         tracking_id: id,
-        status
+        status: "View tracking details",
+        tracking_url: `https://track.citypak.lk/track?tracking_number=${id}`
       });
     }
 
-    /* ---------------- DOMEX ---------------- */
+    /* ================= DOMEX ================= */
     if(courier === "domex"){
-      const url = `https://domex.lk/tracking/?id=${id}`;
-      const response = await axios.get(url);
-      const $ = cheerio.load(response.data);
+      try {
+        const url = `https://domex.lk/tracking/?id=${id}`;
+        const response = await axios.get(url);
+        const $ = cheerio.load(response.data);
 
-      const status = $("td:contains('Status')").next().text().trim();
+        const status = $("td:contains('Status')").next().text().trim();
 
-      return res.status(200).json({
-        success: true,
-        courier: "Domex",
-        tracking_id: id,
-        status
-      });
+        return res.status(200).json({
+          success: true,
+          courier: "Domex",
+          tracking_id: id,
+          status: status || "In Transit"
+        });
+
+      } catch {
+        return res.status(200).json({
+          success: false,
+          error: "Domex tracking failed"
+        });
+      }
     }
 
+    /* ================= UNKNOWN ================= */
     return res.status(200).json({
       success: false,
       error: "Unknown courier"
@@ -98,7 +141,7 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({
       success: false,
-      error: "Tracking failed"
+      error: "Server error"
     });
   }
 }
