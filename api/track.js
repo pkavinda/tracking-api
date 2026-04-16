@@ -1,4 +1,4 @@
-console.log("NEW VERSION DEPLOYED");
+status: "NEW VERSION LIVE 🚀"
 
 import axios from "axios";
 import * as cheerio from "cheerio";
