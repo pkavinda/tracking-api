@@ -18,53 +18,53 @@ export default async function handler(req, res) {
   try {
     const courier = detectCourier(id);
 
-    /* ================= SL POST ================= */
-    if(courier === "slpost"){
-      const url = `https://bepost.lk/p/Search/?itemcode=${id}`;
+    /* ================= SL POST (REAL FIX) ================= */
+if(courier === "slpost"){
+  const url = "https://bepost.lk/p/Search/";
 
-      try {
-        const response = await axios.get(url, {
-          headers: {
-            "User-Agent": "Mozilla/5.0",
-            "Accept-Language": "en-US,en;q=0.9"
-          }
-        });
-
-        const $ = cheerio.load(response.data);
-
-        const status = $("td:contains('Status')").next().text().trim();
-        const location = $("td:contains('Location')").next().text().trim();
-        const date = $("td:contains('Date')").next().text().trim();
-
-        if(!status){
-          return res.status(200).json({
-            success: true,
-            courier: "Sri Lanka Post",
-            tracking_id: id,
-            status: "View tracking details",
-            tracking_url: url
-          });
+  try {
+    const response = await axios.post(url,
+      new URLSearchParams({
+        itemcode: id
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "Mozilla/5.0",
+          "Origin": "https://bepost.lk",
+          "Referer": "https://bepost.lk/p/Search/"
         }
-
-        return res.status(200).json({
-          success: true,
-          courier: "Sri Lanka Post",
-          tracking_id: id,
-          status,
-          location,
-          date
-        });
-
-      } catch {
-        return res.status(200).json({
-          success: true,
-          courier: "Sri Lanka Post",
-          tracking_id: id,
-          status: "View tracking details",
-          tracking_url: url
-        });
       }
+    );
+
+    const $ = cheerio.load(response.data);
+
+    const status = $("td:contains('Status')").next().text().trim();
+    const location = $("td:contains('Location')").next().text().trim();
+    const date = $("td:contains('Date')").next().text().trim();
+
+    if(status){
+      return res.status(200).json({
+        success: true,
+        courier: "Sri Lanka Post",
+        tracking_id: id,
+        status,
+        location,
+        date
+      });
     }
+
+  } catch (e) {}
+
+  // fallback
+  return res.status(200).json({
+    success: true,
+    courier: "Sri Lanka Post",
+    tracking_id: id,
+    status: "View tracking details",
+    tracking_url: "https://bepost.lk/p/Search/"
+  });
+}
 
     /* ================= KOOMBIYO ================= */
     if(courier === "koombiyo"){
